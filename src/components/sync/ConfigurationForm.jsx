@@ -4,12 +4,16 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
-import { FileCode, Github, Sheet } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { FileCode, Github, Sheet, Upload, Loader2 } from 'lucide-react';
+import { base44 } from '@/api/base44Client';
 
 export default function ConfigurationForm({ onNext, initialData = null }) {
   const [formData, setFormData] = useState(initialData || {
     configName: '',
     sheetUrl: '',
+    uploadedFileUrl: '',
+    dataSourceType: 'sheet', // 'sheet' or 'file'
     githubRepo: '',
     githubToken: '',
     schema: '{\n  "@context": "https://schema.org",\n  "@type": "Thing",\n  "name": "",\n  "description": ""\n}',
@@ -19,6 +23,33 @@ export default function ConfigurationForm({ onNext, initialData = null }) {
   });
 
   const [errors, setErrors] = useState({});
+  const [uploading, setUploading] = useState(false);
+
+  const handleFileUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const allowedTypes = ['.csv', '.xlsx'];
+    const fileExt = file.name.substring(file.name.lastIndexOf('.')).toLowerCase();
+    
+    if (!allowedTypes.includes(fileExt)) {
+      setErrors({ ...errors, uploadedFileUrl: 'Only CSV and XLSX files are supported' });
+      return;
+    }
+
+    try {
+      setUploading(true);
+      setErrors({ ...errors, uploadedFileUrl: undefined });
+
+      const { file_url } = await base44.integrations.Core.UploadFile({ file });
+      
+      setFormData(prev => ({ ...prev, uploadedFileUrl: file_url }));
+      setUploading(false);
+    } catch (err) {
+      setErrors({ ...errors, uploadedFileUrl: `Upload failed: ${err.message}` });
+      setUploading(false);
+    }
+  };
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -29,8 +60,14 @@ export default function ConfigurationForm({ onNext, initialData = null }) {
       newErrors.configName = 'Configuration name is required';
     }
     
-    if (!formData.sheetUrl.trim()) {
-      newErrors.sheetUrl = 'Google Sheet URL is required';
+    if (formData.dataSourceType === 'sheet') {
+      if (!formData.sheetUrl.trim()) {
+        newErrors.sheetUrl = 'Google Sheet URL is required';
+      }
+    } else {
+      if (!formData.uploadedFileUrl) {
+        newErrors.uploadedFileUrl = 'Please upload a file';
+      }
     }
     
     if (!formData.githubRepo.trim()) {
@@ -91,24 +128,54 @@ export default function ConfigurationForm({ onNext, initialData = null }) {
             )}
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="sheetUrl" className="flex items-center gap-2">
-              <Sheet className="w-4 h-4" />
-              Google Sheet URL
-            </Label>
-            <Input
-              id="sheetUrl"
-              value={formData.sheetUrl}
-              onChange={(e) => handleChange('sheetUrl', e.target.value)}
-              placeholder="https://docs.google.com/spreadsheets/d/..."
-            />
-            <p className="text-xs text-slate-500">
-              Make sure the sheet is publicly accessible or set to "Anyone with the link can view"
-            </p>
-            {errors.sheetUrl && (
-              <p className="text-sm text-red-600">{errors.sheetUrl}</p>
-            )}
-          </div>
+          <Tabs value={formData.dataSourceType} onValueChange={(value) => handleChange('dataSourceType', value)}>
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="sheet">Google Sheet</TabsTrigger>
+              <TabsTrigger value="file">Upload File</TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="sheet" className="space-y-2">
+              <Label htmlFor="sheetUrl" className="flex items-center gap-2">
+                <Sheet className="w-4 h-4" />
+                Google Sheet URL
+              </Label>
+              <Input
+                id="sheetUrl"
+                value={formData.sheetUrl}
+                onChange={(e) => handleChange('sheetUrl', e.target.value)}
+                placeholder="https://docs.google.com/spreadsheets/d/..."
+              />
+              <p className="text-xs text-slate-500">
+                Make sure the sheet is publicly accessible or set to "Anyone with the link can view"
+              </p>
+              {errors.sheetUrl && (
+                <p className="text-sm text-red-600">{errors.sheetUrl}</p>
+              )}
+            </TabsContent>
+
+            <TabsContent value="file" className="space-y-2">
+              <Label htmlFor="fileUpload" className="flex items-center gap-2">
+                <Upload className="w-4 h-4" />
+                Upload CSV or XLSX File
+              </Label>
+              <div className="flex items-center gap-2">
+                <Input
+                  id="fileUpload"
+                  type="file"
+                  accept=".csv,.xlsx"
+                  onChange={handleFileUpload}
+                  disabled={uploading}
+                />
+                {uploading && <Loader2 className="w-4 h-4 animate-spin text-slate-400" />}
+              </div>
+              {formData.uploadedFileUrl && (
+                <p className="text-xs text-green-600">✓ File uploaded successfully</p>
+              )}
+              {errors.uploadedFileUrl && (
+                <p className="text-sm text-red-600">{errors.uploadedFileUrl}</p>
+              )}
+            </TabsContent>
+          </Tabs>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">

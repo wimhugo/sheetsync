@@ -23,7 +23,12 @@ export default function PreviewChanges({ config, mapping, onBack, onPush, userRo
       setError(null);
 
       // 1. Read sheet data
-      const rows = await SheetsService.readSheet(config.sheetUrl);
+      let rows;
+      if (config.dataSourceType === 'file' && config.uploadedFileUrl) {
+        rows = await SheetsService.readUploadedFile(config.uploadedFileUrl);
+      } else {
+        rows = await SheetsService.readSheet(config.sheetUrl);
+      }
 
       if (!rows || rows.length === 0) {
         throw new Error('No data found in the sheet. Please add some rows.');

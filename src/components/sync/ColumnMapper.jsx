@@ -22,7 +22,12 @@ export default function ColumnMapper({ config, onNext, onBack, initialMapping = 
       setLoading(true);
       setError(null);
       
-      const sheetColumns = await SheetsService.getSheetColumns(config.sheetUrl);
+      let sheetColumns;
+      if (config.dataSourceType === 'file' && config.uploadedFileUrl) {
+        sheetColumns = await SheetsService.getUploadedFileColumns(config.uploadedFileUrl);
+      } else {
+        sheetColumns = await SheetsService.getSheetColumns(config.sheetUrl);
+      }
       
       if (sheetColumns.length === 0) {
         throw new Error('No columns found in the sheet. Please ensure the sheet has headers.');

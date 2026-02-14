@@ -95,7 +95,7 @@ export default function SyncPage() {
     try {
       await base44.entities.SyncHistory.create({
         configuration_name: config.configName,
-        sheet_url: config.sheetUrl,
+        sheet_url: config.sheetUrl || config.uploadedFileUrl || 'uploaded-file',
         github_repo: config.githubRepo,
         pr_url: pushResult.prUrl,
         status: 'success',

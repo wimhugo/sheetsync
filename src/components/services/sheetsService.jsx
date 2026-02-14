@@ -46,7 +46,10 @@ export class SheetsService {
         if (response.status === 403) {
           throw new Error('Access denied. Make sure the sheet is set to "Anyone with the link can view".');
         }
-        throw new Error(`Failed to fetch sheet (status ${response.status}). Ensure the sheet is publicly accessible.`);
+        if (response.status === 400) {
+          throw new Error('Invalid request to Google Sheets. The URL may be malformed or the sheet ID/GID is invalid. Try uploading a CSV/XLSX file instead.');
+        }
+        throw new Error(`Failed to fetch sheet (status ${response.status}). Consider uploading a CSV/XLSX file instead.`);
       }
 
       const csvText = await response.text();
@@ -124,10 +127,64 @@ export class SheetsService {
   }
 
   /**
+   * Read data from an uploaded file (CSV or XLSX)
+   */
+  static async readUploadedFile(fileUrl) {
+    try {
+      const response = await fetch(fileUrl);
+      if (!response.ok) {
+        throw new Error('Failed to fetch uploaded file');
+      }
+
+      const contentType = response.headers.get('content-type');
+      const fileName = fileUrl.split('/').pop();
+      
+      if (fileName.endsWith('.csv') || contentType?.includes('text/csv')) {
+        const csvText = await response.text();
+        return this.parseCSV(csvText);
+      } else if (fileName.endsWith('.xlsx') || contentType?.includes('spreadsheet')) {
+        // Use Base44 integration to extract data from XLSX
+        const { base44 } = await import('@/api/base44Client');
+        const result = await base44.integrations.Core.ExtractDataFromUploadedFile({
+          file_url: fileUrl,
+          json_schema: {
+            type: 'array',
+            items: {
+              type: 'object',
+              additionalProperties: { type: 'string' }
+            }
+          }
+        });
+
+        if (result.status === 'error') {
+          throw new Error(result.details || 'Failed to extract data from file');
+        }
+
+        return result.output;
+      } else {
+        throw new Error('Unsupported file format. Please upload a CSV or XLSX file.');
+      }
+    } catch (error) {
+      throw new Error(`Failed to read uploaded file: ${error.message}`);
+    }
+  }
+
+  /**
    * Get sheet columns (headers)
    */
   static async getSheetColumns(sheetUrl) {
     const data = await this.readSheet(sheetUrl);
+    if (data.length === 0) {
+      return [];
+    }
+    return Object.keys(data[0]);
+  }
+
+  /**
+   * Get columns from uploaded file
+   */
+  static async getUploadedFileColumns(fileUrl) {
+    const data = await this.readUploadedFile(fileUrl);
     if (data.length === 0) {
       return [];
     }
