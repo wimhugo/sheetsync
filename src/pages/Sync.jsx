@@ -49,6 +49,12 @@ export default function SyncPage() {
   const handleMapNext = async (columnMapping) => {
     setMapping(columnMapping);
 
+    // Validate mapping has at least one field mapped
+    if (Object.keys(columnMapping).length === 0) {
+      alert('Please map at least one column to a schema field before proceeding.');
+      return;
+    }
+
     // Save configuration to GitHub
     try {
       const configData = {
@@ -71,7 +77,12 @@ export default function SyncPage() {
       );
     } catch (err) {
       console.error('Failed to save configuration:', err);
-      alert(`Warning: Configuration could not be saved to GitHub: ${err.message}`);
+      const shouldContinue = window.confirm(
+        `Warning: Configuration could not be saved to GitHub:\n${err.message}\n\nDo you want to continue anyway?`
+      );
+      if (!shouldContinue) {
+        return;
+      }
     }
 
     setStep('preview');
@@ -94,6 +105,7 @@ export default function SyncPage() {
       });
     } catch (err) {
       console.error('Failed to save sync history:', err);
+      // Non-critical error, continue anyway
     }
 
     setStep('success');

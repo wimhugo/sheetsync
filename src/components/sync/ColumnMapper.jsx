@@ -23,7 +23,16 @@ export default function ColumnMapper({ config, onNext, onBack, initialMapping = 
       setError(null);
       
       const sheetColumns = await SheetsService.getSheetColumns(config.sheetUrl);
+      
+      if (sheetColumns.length === 0) {
+        throw new Error('No columns found in the sheet. Please ensure the sheet has headers.');
+      }
+      
       const paths = JsonLdService.extractSchemaPaths(config.schema);
+      
+      if (paths.length === 0) {
+        throw new Error('No fields found in the schema. Please check your JSON-LD schema.');
+      }
       
       setColumns(sheetColumns);
       setSchemaPaths(paths);
@@ -45,7 +54,7 @@ export default function ColumnMapper({ config, onNext, onBack, initialMapping = 
       
       setLoading(false);
     } catch (err) {
-      setError(err.message);
+      setError(err.message || 'Failed to load sheet columns');
       setLoading(false);
     }
   };
@@ -84,12 +93,16 @@ export default function ColumnMapper({ config, onNext, onBack, initialMapping = 
     reader.onload = (event) => {
       try {
         const data = JSON.parse(event.target.result);
-        if (data.mapping) {
-          setMapping(data.mapping);
+        if (!data.mapping || typeof data.mapping !== 'object') {
+          throw new Error('Invalid mapping format');
         }
+        setMapping(data.mapping);
       } catch (err) {
-        alert('Invalid mapping file');
+        setError(`Failed to import mapping: ${err.message}`);
       }
+    };
+    reader.onerror = () => {
+      setError('Failed to read mapping file');
     };
     reader.readAsText(file);
   };

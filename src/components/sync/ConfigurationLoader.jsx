@@ -20,6 +20,11 @@ export default function ConfigurationLoader({ onLoad, onCreateNew }) {
       return;
     }
 
+    if (!githubRepo.match(/^[a-zA-Z0-9_-]+\/[a-zA-Z0-9_-]+$/)) {
+      setError('Invalid repository format. Use: owner/repo');
+      return;
+    }
+
     try {
       setLoading(true);
       setError(null);
@@ -29,15 +34,22 @@ export default function ConfigurationLoader({ onLoad, onCreateNew }) {
       setShowForm(false);
       setLoading(false);
     } catch (err) {
-      setError(err.message);
+      setError(err.message || 'Failed to load configurations');
       setLoading(false);
+      console.error('Configuration loading error:', err);
     }
   };
 
   const handleSelectConfiguration = async (configName) => {
     try {
       setLoading(true);
+      setError(null);
+      
       const { config } = await GitHubService.getConfiguration(githubRepo, configName, githubToken);
+      
+      if (!config.sheetUrl || !config.schema) {
+        throw new Error('Configuration is missing required fields');
+      }
       
       onLoad({
         ...config,
@@ -46,8 +58,9 @@ export default function ConfigurationLoader({ onLoad, onCreateNew }) {
         configName
       });
     } catch (err) {
-      alert(`Failed to load configuration: ${err.message}`);
+      setError(`Failed to load configuration: ${err.message}`);
       setLoading(false);
+      console.error('Configuration selection error:', err);
     }
   };
 

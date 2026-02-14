@@ -31,19 +31,39 @@ export class SheetsService {
    * Returns array of objects with column headers as keys
    */
   static async readSheet(sheetUrl) {
-    const spreadsheetId = this.extractSpreadsheetId(sheetUrl);
-    const gid = this.extractSheetGid(sheetUrl);
-    
-    // Use the CSV export feature
-    const csvUrl = `https://docs.google.com/spreadsheets/d/${spreadsheetId}/export?format=csv&gid=${gid}`;
-    
-    const response = await fetch(csvUrl);
-    if (!response.ok) {
-      throw new Error('Failed to fetch sheet data. Make sure the sheet is publicly accessible or use "Anyone with the link can view".');
-    }
+    try {
+      const spreadsheetId = this.extractSpreadsheetId(sheetUrl);
+      const gid = this.extractSheetGid(sheetUrl);
+      
+      // Use the CSV export feature
+      const csvUrl = `https://docs.google.com/spreadsheets/d/${spreadsheetId}/export?format=csv&gid=${gid}`;
+      
+      const response = await fetch(csvUrl);
+      if (!response.ok) {
+        if (response.status === 404) {
+          throw new Error('Sheet not found. Please check the URL and make sure the sheet exists.');
+        }
+        if (response.status === 403) {
+          throw new Error('Access denied. Make sure the sheet is set to "Anyone with the link can view".');
+        }
+        throw new Error(`Failed to fetch sheet (status ${response.status}). Ensure the sheet is publicly accessible.`);
+      }
 
-    const csvText = await response.text();
-    return this.parseCSV(csvText);
+      const csvText = await response.text();
+      if (!csvText.trim()) {
+        throw new Error('Sheet is empty or contains no data.');
+      }
+      
+      return this.parseCSV(csvText);
+    } catch (error) {
+      if (error.message.includes('Invalid Google Sheets URL')) {
+        throw error;
+      }
+      if (error.message.includes('fetch') && !error.message.includes('Failed to fetch sheet')) {
+        throw new Error('Network error while accessing Google Sheets.');
+      }
+      throw error;
+    }
   }
 
   /**

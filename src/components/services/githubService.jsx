@@ -21,87 +21,129 @@ export class GitHubService {
    * List all configuration files from the repository
    */
   static async listConfigurations(repo, token) {
-    const url = `${GITHUB_API_BASE}/repos/${repo}/contents/${CONFIG_DIR}`;
-    const response = await fetch(url, {
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Accept': 'application/vnd.github.v3+json'
-      }
-    });
+    try {
+      const url = `${GITHUB_API_BASE}/repos/${repo}/contents/${CONFIG_DIR}`;
+      const response = await fetch(url, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/vnd.github.v3+json'
+        }
+      });
 
-    if (!response.ok) {
-      if (response.status === 404) {
-        return []; // Directory doesn't exist yet
+      if (!response.ok) {
+        if (response.status === 404) {
+          return []; // Directory doesn't exist yet
+        }
+        if (response.status === 401) {
+          throw new Error('Invalid GitHub token. Please check your credentials.');
+        }
+        if (response.status === 403) {
+          throw new Error('GitHub API rate limit exceeded or access denied.');
+        }
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || `Failed to list configurations: ${response.statusText}`);
       }
-      throw new Error(`Failed to list configurations: ${response.statusText}`);
+
+      const files = await response.json();
+      return files
+        .filter(f => f.name.endsWith('.json'))
+        .map(f => ({
+          name: f.name.replace('.json', ''),
+          path: f.path,
+          sha: f.sha
+        }));
+    } catch (error) {
+      if (error.message.includes('fetch')) {
+        throw new Error('Network error. Please check your internet connection.');
+      }
+      throw error;
     }
-
-    const files = await response.json();
-    return files
-      .filter(f => f.name.endsWith('.json'))
-      .map(f => ({
-        name: f.name.replace('.json', ''),
-        path: f.path,
-        sha: f.sha
-      }));
   }
 
   /**
    * Get a specific configuration file
    */
   static async getConfiguration(repo, configName, token) {
-    const url = `${GITHUB_API_BASE}/repos/${repo}/contents/${CONFIG_DIR}/${configName}.json`;
-    const response = await fetch(url, {
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Accept': 'application/vnd.github.v3+json'
+    try {
+      const url = `${GITHUB_API_BASE}/repos/${repo}/contents/${CONFIG_DIR}/${configName}.json`;
+      const response = await fetch(url, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/vnd.github.v3+json'
+        }
+      });
+
+      if (!response.ok) {
+        if (response.status === 404) {
+          throw new Error(`Configuration "${configName}" not found in repository.`);
+        }
+        if (response.status === 401) {
+          throw new Error('Invalid GitHub token. Please check your credentials.');
+        }
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || `Failed to get configuration: ${response.statusText}`);
       }
-    });
 
-    if (!response.ok) {
-      throw new Error(`Failed to get configuration: ${response.statusText}`);
+      const data = await response.json();
+      const content = atob(data.content);
+      return {
+        config: JSON.parse(content),
+        sha: data.sha
+      };
+    } catch (error) {
+      if (error instanceof SyntaxError) {
+        throw new Error(`Configuration file is corrupted or contains invalid JSON.`);
+      }
+      throw error;
     }
-
-    const data = await response.json();
-    const content = atob(data.content);
-    return {
-      config: JSON.parse(content),
-      sha: data.sha
-    };
   }
 
   /**
    * Save configuration to the repository
    */
   static async saveConfiguration(repo, configName, configData, token, sha = null) {
-    const url = `${GITHUB_API_BASE}/repos/${repo}/contents/${CONFIG_DIR}/${configName}.json`;
-    const content = btoa(JSON.stringify(configData, null, 2));
+    try {
+      const url = `${GITHUB_API_BASE}/repos/${repo}/contents/${CONFIG_DIR}/${configName}.json`;
+      const content = btoa(JSON.stringify(configData, null, 2));
 
-    const body = {
-      message: `Update configuration: ${configName}`,
-      content: content,
-      branch: 'main'
-    };
+      const body = {
+        message: `Update configuration: ${configName}`,
+        content: content,
+        branch: 'main'
+      };
 
-    if (sha) {
-      body.sha = sha;
+      if (sha) {
+        body.sha = sha;
+      }
+
+      const response = await fetch(url, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/vnd.github.v3+json',
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(body)
+      });
+
+      if (!response.ok) {
+        if (response.status === 401) {
+          throw new Error('Invalid GitHub token or insufficient permissions.');
+        }
+        if (response.status === 409) {
+          throw new Error('Configuration file has been modified. Please reload and try again.');
+        }
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || `Failed to save configuration: ${response.statusText}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      if (error.message.includes('fetch')) {
+        throw new Error('Network error while saving configuration.');
+      }
+      throw error;
     }
-
-    const response = await fetch(url, {
-      method: 'PUT',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Accept': 'application/vnd.github.v3+json',
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(body)
-    });
-
-    if (!response.ok) {
-      throw new Error(`Failed to save configuration: ${response.statusText}`);
-    }
-
-    return await response.json();
   }
 
   /**
@@ -162,18 +204,26 @@ export class GitHubService {
    * @param {string} token - GitHub access token
    */
   static async createPullRequest(repo, title, body, changes, token) {
-    // 1. Get the default branch and its latest commit SHA
-    const repoUrl = `${GITHUB_API_BASE}/repos/${repo}`;
-    const repoResponse = await fetch(repoUrl, {
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Accept': 'application/vnd.github.v3+json'
-      }
-    });
+    try {
+      // 1. Get the default branch and its latest commit SHA
+      const repoUrl = `${GITHUB_API_BASE}/repos/${repo}`;
+      const repoResponse = await fetch(repoUrl, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/vnd.github.v3+json'
+        }
+      });
 
-    if (!repoResponse.ok) {
-      throw new Error(`Failed to get repository info: ${repoResponse.statusText}`);
-    }
+      if (!repoResponse.ok) {
+        if (repoResponse.status === 404) {
+          throw new Error(`Repository "${repo}" not found. Please check the repository name.`);
+        }
+        if (repoResponse.status === 401) {
+          throw new Error('Invalid GitHub token.');
+        }
+        const errorData = await repoResponse.json().catch(() => ({}));
+        throw new Error(errorData.message || `Failed to access repository: ${repoResponse.statusText}`);
+      }
 
     const repoData = await repoResponse.json();
     const defaultBranch = repoData.default_branch;
@@ -284,5 +334,11 @@ export class GitHubService {
       number: prData.number,
       branch: branchName
     };
+    } catch (error) {
+      if (error.message.includes('fetch')) {
+        throw new Error('Network error while creating pull request.');
+      }
+      throw error;
+    }
   }
 }

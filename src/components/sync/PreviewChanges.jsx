@@ -25,11 +25,19 @@ export default function PreviewChanges({ config, mapping, onBack, onPush, userRo
       // 1. Read sheet data
       const rows = await SheetsService.readSheet(config.sheetUrl);
 
+      if (!rows || rows.length === 0) {
+        throw new Error('No data found in the sheet. Please add some rows.');
+      }
+
       // 2. Generate JSON-LD files
       const generatedFiles = JsonLdService.generateFiles(rows, config.schema, mapping, {
         fileNameColumn: config.fileNameColumn,
         outputDir: config.outputDir
       });
+
+      if (generatedFiles.length === 0) {
+        throw new Error('No valid rows to sync. Please check your sheet data.');
+      }
 
       // 3. Generate index file
       const indexFile = JsonLdService.generateIndexFile(generatedFiles, {
@@ -125,19 +133,21 @@ export default function PreviewChanges({ config, mapping, onBack, onPush, userRo
       setChanges(changesList);
       setLoading(false);
     } catch (err) {
-      setError(err.message);
+      setError(err.message || 'Failed to generate preview');
       setLoading(false);
+      console.error('Preview generation error:', err);
     }
   };
 
   const handlePush = async () => {
     if (changes.length === 0) {
-      alert('No changes to push');
+      setError('No changes to push');
       return;
     }
 
     try {
       setPushing(true);
+      setError(null);
 
       const title = `Sync: ${config.configName}`;
       const body = `
@@ -171,7 +181,8 @@ Automated sync from Google Sheets to JSON-LD files.
       });
     } catch (err) {
       setPushing(false);
-      alert(`Failed to create PR: ${err.message}`);
+      setError(`Failed to create pull request: ${err.message}`);
+      console.error('Push error:', err);
     }
   };
 
@@ -216,14 +227,19 @@ Automated sync from Google Sheets to JSON-LD files.
     );
   }
 
-  if (error) {
+  if (error && loading === false && changes.length === 0) {
     return (
       <Card>
         <CardContent className="py-12">
-          <div className="text-center text-red-600">Error: {error}</div>
-          <div className="mt-4 text-center space-x-2">
-            <Button onClick={onBack} variant="outline">Back</Button>
-            <Button onClick={generatePreview}>Retry</Button>
+          <div className="max-w-md mx-auto">
+            <div className="text-center text-red-600 mb-4">
+              <div className="font-semibold mb-2">Error Generating Preview</div>
+              <div className="text-sm">{error}</div>
+            </div>
+            <div className="mt-6 flex justify-center gap-2">
+              <Button onClick={onBack} variant="outline">Back to Mapping</Button>
+              <Button onClick={generatePreview}>Retry</Button>
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -289,6 +305,13 @@ Automated sync from Google Sheets to JSON-LD files.
             </div>
           </div>
         </div>
+
+        {error && (
+          <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
+            <div className="font-medium mb-1">Error:</div>
+            {error}
+          </div>
+        )}
 
         {!canPush && (
           <div className="mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg text-sm text-yellow-800">
