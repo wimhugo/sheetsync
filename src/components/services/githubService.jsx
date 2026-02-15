@@ -46,13 +46,16 @@ export class GitHubService {
       }
 
       const files = await response.json();
-      return files
-        .filter(f => f.name.endsWith('.json'))
+      console.log('Raw files from GitHub:', files);
+      const filtered = files
+        .filter(f => f.type === 'file' && f.name.endsWith('.json'))
         .map(f => ({
           name: f.name.replace('.json', ''),
           path: f.path,
           sha: f.sha
         }));
+      console.log('Filtered configurations:', filtered);
+      return filtered;
     } catch (error) {
       if (error.message.includes('fetch')) {
         throw new Error('Network error. Please check your internet connection.');
