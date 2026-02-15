@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
+import { Link } from 'react-router-dom';
+import { createPageUrl } from '@/utils';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { CheckCircle2, Settings, Map, Eye, Send } from 'lucide-react';
+import { CheckCircle2, Settings, Map, Eye, Send, Network } from 'lucide-react';
 import ConfigurationLoader from '../components/sync/ConfigurationLoader';
 import ConfigurationForm from '../components/sync/ConfigurationForm';
 import ColumnMapper from '../components/sync/ColumnMapper';
@@ -162,12 +164,22 @@ export default function SyncPage() {
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-6">
       <div className="max-w-6xl mx-auto">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-slate-900 mb-2">
-            Sheet to GitHub JSON-LD Sync
-          </h1>
-          <p className="text-slate-600">
-            Sync Google Sheets data to GitHub repository as JSON-LD files
-          </p>
+          <div className="flex items-start justify-between">
+            <div>
+              <h1 className="text-3xl font-bold text-slate-900 mb-2">
+                Sheet to GitHub JSON-LD Sync
+              </h1>
+              <p className="text-slate-600">
+                Sync Google Sheets data to GitHub repository as JSON-LD files
+              </p>
+            </div>
+            <Link to={createPageUrl('ProfileRelationshipSync')}>
+              <Button variant="outline">
+                <Network className="w-4 h-4 mr-2" />
+                Profile Relationships
+              </Button>
+            </Link>
+          </div>
         </div>
 
         {/* User Role Badge */}

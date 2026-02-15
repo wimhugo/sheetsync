@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
+import { Link } from 'react-router-dom';
+import { createPageUrl } from '@/utils';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -8,7 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
   CheckCircle2, AlertCircle, Loader2, Upload, Sheet, 
-  ArrowRight, GitPullRequest, AlertTriangle 
+  ArrowRight, GitPullRequest, AlertTriangle, ArrowLeft 
 } from 'lucide-react';
 import { ProfileRelationshipService } from '../components/services/profileRelationshipService';
 import { GitHubService } from '../components/services/githubService';
@@ -186,6 +188,12 @@ export default function ProfileRelationshipSync() {
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-6">
       <div className="max-w-5xl mx-auto">
         <div className="mb-8">
+          <Link to={createPageUrl('Sync')}>
+            <Button variant="ghost" size="sm" className="mb-4">
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Back to Main Sync
+            </Button>
+          </Link>
           <h1 className="text-3xl font-bold text-slate-900 mb-2">
             Profile Relationship Sync
           </h1>
