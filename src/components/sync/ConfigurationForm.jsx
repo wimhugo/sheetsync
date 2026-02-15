@@ -24,6 +24,9 @@ export default function ConfigurationForm({ onNext, initialData = null }) {
     fileNameColumn: ''
   });
 
+  // Check if GitHub credentials are provided from loaded config
+  const hasGithubCredentials = initialData?.githubRepo && initialData?.githubToken;
+
   const [errors, setErrors] = useState({});
   const [uploading, setUploading] = useState(false);
   const [templates, setTemplates] = useState([]);
@@ -76,14 +79,16 @@ export default function ConfigurationForm({ onNext, initialData = null }) {
       }
     }
     
-    if (!formData.githubRepo.trim()) {
-      newErrors.githubRepo = 'GitHub repository is required';
-    } else if (!formData.githubRepo.match(/^[a-zA-Z0-9_-]+\/[a-zA-Z0-9_-]+$/)) {
-      newErrors.githubRepo = 'Format should be: owner/repo';
-    }
-    
-    if (!formData.githubToken.trim()) {
-      newErrors.githubToken = 'GitHub token is required';
+    if (!hasGithubCredentials) {
+      if (!formData.githubRepo.trim()) {
+        newErrors.githubRepo = 'GitHub repository is required';
+      } else if (!formData.githubRepo.match(/^[a-zA-Z0-9_-]+\/[a-zA-Z0-9_-]+$/)) {
+        newErrors.githubRepo = 'Format should be: owner/repo';
+      }
+      
+      if (!formData.githubToken.trim()) {
+        newErrors.githubToken = 'GitHub token is required';
+      }
     }
     
     try {
@@ -230,37 +235,49 @@ export default function ConfigurationForm({ onNext, initialData = null }) {
             </TabsContent>
           </Tabs>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="githubRepo" className="flex items-center gap-2">
-                <Github className="w-4 h-4" />
-                GitHub Repository
-              </Label>
-              <Input
-                id="githubRepo"
-                value={formData.githubRepo}
-                onChange={(e) => handleChange('githubRepo', e.target.value)}
-                placeholder="owner/repo"
-              />
-              {errors.githubRepo && (
-                <p className="text-sm text-red-600">{errors.githubRepo}</p>
-              )}
-            </div>
+          {!hasGithubCredentials ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="githubRepo" className="flex items-center gap-2">
+                  <Github className="w-4 h-4" />
+                  GitHub Repository
+                </Label>
+                <Input
+                  id="githubRepo"
+                  value={formData.githubRepo}
+                  onChange={(e) => handleChange('githubRepo', e.target.value)}
+                  placeholder="owner/repo"
+                />
+                {errors.githubRepo && (
+                  <p className="text-sm text-red-600">{errors.githubRepo}</p>
+                )}
+              </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="githubToken">GitHub Personal Access Token</Label>
-              <Input
-                id="githubToken"
-                type="password"
-                value={formData.githubToken}
-                onChange={(e) => handleChange('githubToken', e.target.value)}
-                placeholder="ghp_..."
-              />
-              {errors.githubToken && (
-                <p className="text-sm text-red-600">{errors.githubToken}</p>
-              )}
+              <div className="space-y-2">
+                <Label htmlFor="githubToken">GitHub Personal Access Token</Label>
+                <Input
+                  id="githubToken"
+                  type="password"
+                  value={formData.githubToken}
+                  onChange={(e) => handleChange('githubToken', e.target.value)}
+                  placeholder="ghp_..."
+                />
+                {errors.githubToken && (
+                  <p className="text-sm text-red-600">{errors.githubToken}</p>
+                )}
+              </div>
             </div>
-          </div>
+          ) : (
+            <div className="p-4 bg-green-50 border border-green-200 rounded-lg flex items-start gap-3">
+              <Github className="w-5 h-5 text-green-600 mt-0.5" />
+              <div>
+                <div className="font-medium text-green-900">GitHub credentials loaded</div>
+                <div className="text-sm text-green-700 mt-1">
+                  Repository: <span className="font-mono">{formData.githubRepo}</span>
+                </div>
+              </div>
+            </div>
+          )}
 
           <div className="space-y-2">
             <div className="flex items-center justify-between">
