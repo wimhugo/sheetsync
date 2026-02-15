@@ -71,11 +71,25 @@ export default function SyncPage() {
         lastModified: new Date().toISOString()
       };
 
+      // Check if configuration already exists to get its SHA
+      let existingSha = null;
+      try {
+        const existing = await GitHubService.getConfiguration(
+          config.githubRepo,
+          config.configName,
+          config.githubToken
+        );
+        existingSha = existing.sha;
+      } catch (err) {
+        // Configuration doesn't exist yet, that's fine
+      }
+
       await GitHubService.saveConfiguration(
         config.githubRepo,
         config.configName,
         configData,
-        config.githubToken
+        config.githubToken,
+        existingSha
       );
     } catch (err) {
       console.error('Failed to save configuration:', err);
