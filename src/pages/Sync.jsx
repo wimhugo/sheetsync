@@ -29,8 +29,13 @@ export default function SyncPage() {
     }
   };
 
-  const handleLoadConfiguration = (loadedConfig) => {
-    setConfig(loadedConfig);
+  const handleLoadConfiguration = (loadedConfig, githubRepo, githubToken) => {
+    // Store credentials so user doesn't need to enter them again
+    setConfig({
+      ...loadedConfig,
+      githubRepo,
+      githubToken
+    });
     setMapping(loadedConfig.mapping || {});
     setStep('configure');
   };

@@ -75,7 +75,7 @@ export default function ConfigurationLoader({ onLoad, onCreateNew }) {
       };
       
       console.log('Calling onLoad with:', loadedConfig);
-      onLoad(loadedConfig);
+      onLoad(loadedConfig, githubRepo, githubToken);
       setLoading(false);
     } catch (err) {
       console.error('Configuration selection error:', err);
