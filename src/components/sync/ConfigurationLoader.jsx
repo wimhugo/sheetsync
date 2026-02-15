@@ -41,14 +41,21 @@ export default function ConfigurationLoader({ onLoad, onCreateNew }) {
   };
 
   const handleSelectConfiguration = async (configName) => {
+    console.log('Loading configuration:', configName);
     try {
       setLoading(true);
       setError(null);
       
       const { config } = await GitHubService.getConfiguration(githubRepo, configName, githubToken);
+      console.log('Loaded config data:', config);
       
       if ((!config.sheetUrl && !config.uploadedFileUrl) || !config.schema) {
-        throw new Error('Configuration is missing required fields');
+        console.error('Config validation failed:', { 
+          hasSheetUrl: !!config.sheetUrl, 
+          hasUploadedFileUrl: !!config.uploadedFileUrl, 
+          hasSchema: !!config.schema 
+        });
+        throw new Error('Configuration is missing required fields (sheetUrl or uploadedFileUrl, and schema)');
       }
 
       // Ensure dataSourceType is set correctly
@@ -56,16 +63,20 @@ export default function ConfigurationLoader({ onLoad, onCreateNew }) {
         config.dataSourceType = config.uploadedFileUrl ? 'file' : 'sheet';
       }
       
-      onLoad({
+      const loadedConfig = {
         ...config,
         githubRepo,
         githubToken,
         configName
-      });
+      };
+      
+      console.log('Calling onLoad with:', loadedConfig);
+      onLoad(loadedConfig);
+      setLoading(false);
     } catch (err) {
+      console.error('Configuration selection error:', err);
       setError(`Failed to load configuration: ${err.message}`);
       setLoading(false);
-      console.error('Configuration selection error:', err);
     }
   };
 
@@ -144,6 +155,19 @@ export default function ConfigurationLoader({ onLoad, onCreateNew }) {
         </div>
       </CardHeader>
       <CardContent>
+        {error && (
+          <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded text-sm text-red-700">
+            {error}
+          </div>
+        )}
+        
+        {loading && (
+          <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded text-sm text-blue-700 flex items-center gap-2">
+            <Loader2 className="w-4 h-4 animate-spin" />
+            Loading configuration...
+          </div>
+        )}
+        
         {configurations.length === 0 ? (
           <div className="py-12 text-center">
             <FileText className="w-12 h-12 mx-auto mb-4 text-slate-300" />
