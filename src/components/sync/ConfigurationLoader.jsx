@@ -47,8 +47,13 @@ export default function ConfigurationLoader({ onLoad, onCreateNew }) {
       
       const { config } = await GitHubService.getConfiguration(githubRepo, configName, githubToken);
       
-      if (!config.sheetUrl || !config.schema) {
+      if ((!config.sheetUrl && !config.uploadedFileUrl) || !config.schema) {
         throw new Error('Configuration is missing required fields');
+      }
+
+      // Ensure dataSourceType is set correctly
+      if (!config.dataSourceType) {
+        config.dataSourceType = config.uploadedFileUrl ? 'file' : 'sheet';
       }
       
       onLoad({

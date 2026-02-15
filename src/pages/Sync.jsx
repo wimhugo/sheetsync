@@ -60,6 +60,8 @@ export default function SyncPage() {
       const configData = {
         configName: config.configName,
         sheetUrl: config.sheetUrl,
+        uploadedFileUrl: config.uploadedFileUrl,
+        dataSourceType: config.dataSourceType,
         githubRepo: config.githubRepo,
         schema: config.schema,
         outputDir: config.outputDir,
