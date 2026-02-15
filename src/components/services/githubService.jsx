@@ -66,7 +66,10 @@ export class GitHubService {
    */
   static async getConfiguration(repo, configName, token) {
     try {
-      const url = `${GITHUB_API_BASE}/repos/${repo}/contents/${CONFIG_DIR}/${configName}.json`;
+      // Remove .json if it's already in the configName
+      const cleanName = configName.endsWith('.json') ? configName.replace('.json', '') : configName;
+      const url = `${GITHUB_API_BASE}/repos/${repo}/contents/${CONFIG_DIR}/${cleanName}.json`;
+      console.log('Fetching config from URL:', url);
       const response = await fetch(url, {
         headers: {
           'Authorization': `Bearer ${token}`,
