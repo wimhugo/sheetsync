@@ -5,8 +5,10 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { FileCode, Github, Sheet, Upload, Loader2 } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { FileCode, Github, Sheet, Upload, Loader2, Save } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
+import { GitHubService } from '../services/githubService';
 
 export default function ConfigurationForm({ onNext, initialData = null }) {
   const [formData, setFormData] = useState(initialData || {
@@ -24,6 +26,10 @@ export default function ConfigurationForm({ onNext, initialData = null }) {
 
   const [errors, setErrors] = useState({});
   const [uploading, setUploading] = useState(false);
+  const [templates, setTemplates] = useState([]);
+  const [loadingTemplates, setLoadingTemplates] = useState(false);
+  const [savingTemplate, setSavingTemplate] = useState(false);
+  const [newTemplateName, setNewTemplateName] = useState('');
 
   const handleFileUpload = async (e) => {
     const file = e.target.files[0];
@@ -102,6 +108,53 @@ export default function ConfigurationForm({ onNext, initialData = null }) {
     setFormData(prev => ({ ...prev, [field]: value }));
     if (errors[field]) {
       setErrors(prev => ({ ...prev, [field]: undefined }));
+    }
+  };
+
+  const loadTemplates = async () => {
+    if (!formData.githubRepo || !formData.githubToken) {
+      return;
+    }
+
+    try {
+      setLoadingTemplates(true);
+      const templateList = await GitHubService.listTemplates(formData.githubRepo, formData.githubToken);
+      setTemplates(templateList);
+    } catch (err) {
+      console.error('Failed to load templates:', err);
+    } finally {
+      setLoadingTemplates(false);
+    }
+  };
+
+  const handleLoadTemplate = async (templateName) => {
+    if (!templateName) return;
+
+    try {
+      const { schema } = await GitHubService.getTemplate(formData.githubRepo, templateName, formData.githubToken);
+      handleChange('schema', JSON.stringify(schema, null, 2));
+    } catch (err) {
+      setErrors({ ...errors, schema: `Failed to load template: ${err.message}` });
+    }
+  };
+
+  const handleSaveTemplate = async () => {
+    if (!newTemplateName.trim()) {
+      alert('Please enter a template name');
+      return;
+    }
+
+    try {
+      setSavingTemplate(true);
+      const schema = JSON.parse(formData.schema);
+      await GitHubService.saveTemplate(formData.githubRepo, newTemplateName, schema, formData.githubToken);
+      setNewTemplateName('');
+      await loadTemplates();
+      alert('Template saved successfully!');
+    } catch (err) {
+      alert(`Failed to save template: ${err.message}`);
+    } finally {
+      setSavingTemplate(false);
     }
   };
 
@@ -210,10 +263,43 @@ export default function ConfigurationForm({ onNext, initialData = null }) {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="schema" className="flex items-center gap-2">
-              <FileCode className="w-4 h-4" />
-              Target JSON-LD Schema
-            </Label>
+            <div className="flex items-center justify-between">
+              <Label htmlFor="schema" className="flex items-center gap-2">
+                <FileCode className="w-4 h-4" />
+                Target JSON-LD Schema
+              </Label>
+              <div className="flex items-center gap-2">
+                {formData.githubRepo && formData.githubToken && (
+                  <>
+                    <Select onValueChange={handleLoadTemplate}>
+                      <SelectTrigger className="w-48">
+                        <SelectValue placeholder="Load template..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {loadingTemplates ? (
+                          <SelectItem value="loading" disabled>Loading...</SelectItem>
+                        ) : templates.length === 0 ? (
+                          <SelectItem value="none" disabled>No templates found</SelectItem>
+                        ) : (
+                          templates.map(t => (
+                            <SelectItem key={t.name} value={t.name}>{t.name}</SelectItem>
+                          ))
+                        )}
+                      </SelectContent>
+                    </Select>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={loadTemplates}
+                      disabled={loadingTemplates}
+                    >
+                      {loadingTemplates ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Refresh'}
+                    </Button>
+                  </>
+                )}
+              </div>
+            </div>
             <Textarea
               id="schema"
               value={formData.schema}
@@ -221,6 +307,26 @@ export default function ConfigurationForm({ onNext, initialData = null }) {
               className="font-mono text-sm min-h-[200px]"
               placeholder='{"@context": "https://schema.org", "@type": "Thing", ...}'
             />
+            {formData.githubRepo && formData.githubToken && (
+              <div className="flex items-center gap-2">
+                <Input
+                  placeholder="Template name..."
+                  value={newTemplateName}
+                  onChange={(e) => setNewTemplateName(e.target.value)}
+                  className="flex-1"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={handleSaveTemplate}
+                  disabled={savingTemplate || !newTemplateName.trim()}
+                >
+                  <Save className="w-4 h-4 mr-2" />
+                  {savingTemplate ? 'Saving...' : 'Save as Template'}
+                </Button>
+              </div>
+            )}
             {errors.schema && (
               <p className="text-sm text-red-600">{errors.schema}</p>
             )}

@@ -15,6 +15,7 @@
 
 const GITHUB_API_BASE = 'https://api.github.com';
 const CONFIG_DIR = '.configs';
+const TEMPLATE_DIR = '.configs/templates';
 
 export class GitHubService {
   /**
@@ -337,6 +338,132 @@ export class GitHubService {
     } catch (error) {
       if (error.message.includes('fetch')) {
         throw new Error('Network error while creating pull request.');
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * List all template files from the repository
+   */
+  static async listTemplates(repo, token) {
+    try {
+      const url = `${GITHUB_API_BASE}/repos/${repo}/contents/${TEMPLATE_DIR}`;
+      const response = await fetch(url, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/vnd.github.v3+json'
+        }
+      });
+
+      if (!response.ok) {
+        if (response.status === 404) {
+          return []; // Directory doesn't exist yet
+        }
+        if (response.status === 401) {
+          throw new Error('Invalid GitHub token. Please check your credentials.');
+        }
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || `Failed to list templates: ${response.statusText}`);
+      }
+
+      const files = await response.json();
+      return files
+        .filter(f => f.name.endsWith('.json'))
+        .map(f => ({
+          name: f.name.replace('.json', ''),
+          path: f.path,
+          sha: f.sha
+        }));
+    } catch (error) {
+      if (error.message.includes('fetch')) {
+        throw new Error('Network error. Please check your internet connection.');
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Get a specific template file
+   */
+  static async getTemplate(repo, templateName, token) {
+    try {
+      const url = `${GITHUB_API_BASE}/repos/${repo}/contents/${TEMPLATE_DIR}/${templateName}.json`;
+      const response = await fetch(url, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/vnd.github.v3+json'
+        }
+      });
+
+      if (!response.ok) {
+        if (response.status === 404) {
+          throw new Error(`Template "${templateName}" not found in repository.`);
+        }
+        if (response.status === 401) {
+          throw new Error('Invalid GitHub token. Please check your credentials.');
+        }
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || `Failed to get template: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      const content = atob(data.content);
+      return {
+        schema: JSON.parse(content),
+        sha: data.sha
+      };
+    } catch (error) {
+      if (error instanceof SyntaxError) {
+        throw new Error(`Template file is corrupted or contains invalid JSON.`);
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Save template to the repository
+   */
+  static async saveTemplate(repo, templateName, schema, token, sha = null) {
+    try {
+      const url = `${GITHUB_API_BASE}/repos/${repo}/contents/${TEMPLATE_DIR}/${templateName}.json`;
+      const content = btoa(JSON.stringify(schema, null, 2));
+
+      const body = {
+        message: `Update template: ${templateName}`,
+        content: content,
+        branch: 'main'
+      };
+
+      if (sha) {
+        body.sha = sha;
+      }
+
+      const response = await fetch(url, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/vnd.github.v3+json',
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(body)
+      });
+
+      if (!response.ok) {
+        if (response.status === 401) {
+          throw new Error('Invalid GitHub token or insufficient permissions.');
+        }
+        if (response.status === 409) {
+          throw new Error('Template file has been modified. Please reload and try again.');
+        }
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || `Failed to save template: ${response.statusText}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      if (error.message.includes('fetch')) {
+        throw new Error('Network error while saving template.');
       }
       throw error;
     }
