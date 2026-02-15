@@ -49,13 +49,17 @@ export default function ConfigurationLoader({ onLoad, onCreateNew }) {
       const { config } = await GitHubService.getConfiguration(githubRepo, configName, githubToken);
       console.log('Loaded config data:', config);
       
-      if ((!config.sheetUrl && !config.uploadedFileUrl) || !config.schema) {
+      // Check if there's at least one data source (non-empty string)
+      const hasValidSheetUrl = config.sheetUrl && config.sheetUrl.trim() !== '';
+      const hasValidFileUrl = config.uploadedFileUrl && config.uploadedFileUrl.trim() !== '';
+      
+      if ((!hasValidSheetUrl && !hasValidFileUrl) || !config.schema) {
         console.error('Config validation failed:', { 
-          hasSheetUrl: !!config.sheetUrl, 
-          hasUploadedFileUrl: !!config.uploadedFileUrl, 
+          sheetUrl: config.sheetUrl,
+          uploadedFileUrl: config.uploadedFileUrl,
           hasSchema: !!config.schema 
         });
-        throw new Error('Configuration is missing required fields (sheetUrl or uploadedFileUrl, and schema)');
+        throw new Error('Configuration is missing required fields: data source (sheetUrl or uploadedFileUrl) and schema are required');
       }
 
       // Ensure dataSourceType is set correctly
