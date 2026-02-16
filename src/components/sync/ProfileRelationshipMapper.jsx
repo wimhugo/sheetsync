@@ -166,11 +166,16 @@ export default function ProfileRelationshipMapper({ config, onNext, onBack, init
   };
 
   const handleNext = () => {
+    // Clear any previous errors
+    setError(null);
+    
     // Validate that AttributeIRI is mapped (required)
     if (!mapping.AttributeIRI) {
       setError('AttributeIRI field must be mapped');
       return;
     }
+    
+    console.log('Calling onNext with mapping:', mapping);
     onNext(mapping);
   };
 
@@ -310,6 +315,12 @@ export default function ProfileRelationshipMapper({ config, onNext, onBack, init
           <div className="p-3 bg-blue-50 border border-blue-200 rounded text-sm text-blue-700">
             <strong>Note:</strong> AttributeIRI is required to match profile data with existing attribute files.
           </div>
+
+          {error && (
+            <div className="p-3 bg-red-50 border border-red-200 rounded text-sm text-red-700">
+              {error}
+            </div>
+          )}
 
           <div className="flex justify-between">
             <Button variant="outline" onClick={onBack}>
