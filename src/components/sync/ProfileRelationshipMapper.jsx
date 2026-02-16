@@ -11,6 +11,8 @@ import { JsonLdService } from '../services/jsonLdService';
 const DEFAULT_PROFILE_FIELDS = [
   'AttributeIRI',
   'ProfileIRI',
+  'object.@id',
+  'object.name',
   'ProfileClass',
   'ProfileAttributeIRI',
   'ProfileAttributeLabel',
@@ -102,16 +104,19 @@ export default function ProfileRelationshipMapper({ config, onNext, onBack, init
       setSelectedTemplate(templateName);
       const { schema } = await GitHubService.getTemplate(config.githubRepo, templateName, config.githubToken);
       
-      // Extract fields from the schema
-      const schemaPaths = JsonLdService.extractSchemaPaths(schema);
-      
-      // Update profile fields to include schema paths
-      const combinedFields = [...DEFAULT_PROFILE_FIELDS, ...schemaPaths.filter(p => !DEFAULT_PROFILE_FIELDS.includes(p))];
-      setProfileFields(combinedFields);
-      
-      // Re-auto-map with new fields
-      if (columns.length > 0) {
-        autoMapColumns(columns, combinedFields);
+      // Extract only 'profiles' element fields from the schema
+      const profilesSchema = schema.properties?.profiles;
+      if (profilesSchema) {
+        const schemaPaths = JsonLdService.extractSchemaPaths(profilesSchema);
+        
+        // Update profile fields to include only profiles schema paths
+        const combinedFields = [...DEFAULT_PROFILE_FIELDS, ...schemaPaths.filter(p => !DEFAULT_PROFILE_FIELDS.includes(p))];
+        setProfileFields(combinedFields);
+        
+        // Re-auto-map with new fields
+        if (columns.length > 0) {
+          autoMapColumns(columns, combinedFields);
+        }
       }
     } catch (err) {
       setError(`Failed to load template: ${err.message}`);

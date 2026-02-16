@@ -73,7 +73,8 @@ export class ProfileRelationshipService {
         '@type': 'Relationship',
         'relationType': 'includeInProfile',
         'object': {
-          '@id': mapping.ProfileIRI ? (row[mapping.ProfileIRI]?.trim() || '') : ''
+          '@id': mapping['object.@id'] ? (row[mapping['object.@id']]?.trim() || '') : (mapping.ProfileIRI ? (row[mapping.ProfileIRI]?.trim() || '') : ''),
+          'name': mapping['object.name'] ? (row[mapping['object.name']]?.trim() || '') : ''
         },
         'profileClass': mapping.ProfileClass ? (row[mapping.ProfileClass]?.trim() || '') : '',
         'profileAttributeIRI': mapping.ProfileAttributeIRI ? (row[mapping.ProfileAttributeIRI]?.trim() || '') : '',
