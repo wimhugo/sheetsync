@@ -165,7 +165,7 @@ export default function ProfileRelationshipMapper({ config, onNext, onBack, init
     reader.readAsText(file);
   };
 
-  const handleNext = () => {
+  const handleNext = async () => {
     // Clear any previous errors
     setError(null);
     
@@ -175,8 +175,14 @@ export default function ProfileRelationshipMapper({ config, onNext, onBack, init
       return;
     }
     
+    setSubmitting(true);
     console.log('Calling onNext with mapping:', mapping);
-    onNext(mapping);
+    try {
+      await onNext(mapping);
+    } catch (err) {
+      setError(err.message || 'Failed to proceed to preview');
+      setSubmitting(false);
+    }
   };
 
   if (loading) {
@@ -322,12 +328,26 @@ export default function ProfileRelationshipMapper({ config, onNext, onBack, init
             </div>
           )}
 
+          {submitting && (
+            <div className="p-3 bg-blue-50 border border-blue-200 rounded text-sm text-blue-700 flex items-center gap-2">
+              <Loader2 className="w-4 h-4 animate-spin" />
+              Generating preview...
+            </div>
+          )}
+
           <div className="flex justify-between">
-            <Button variant="outline" onClick={onBack}>
+            <Button variant="outline" onClick={onBack} disabled={submitting}>
               Back
             </Button>
-            <Button onClick={handleNext} size="lg">
-              Next: Preview Changes
+            <Button onClick={handleNext} size="lg" disabled={submitting}>
+              {submitting ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Generating Preview...
+                </>
+              ) : (
+                'Next: Preview Changes'
+              )}
             </Button>
           </div>
         </div>

@@ -354,35 +354,12 @@ export default function ProfileRelationshipSync() {
 
         {/* Map Step */}
         {step === 'map' && (
-          <>
-            {loading && (
-              <Card className="mb-4">
-                <CardContent className="py-6">
-                  <div className="flex items-center justify-center gap-3 text-slate-600">
-                    <Loader2 className="w-5 h-5 animate-spin" />
-                    <span>Generating preview...</span>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-            {errors.general && (
-              <Card className="mb-4">
-                <CardContent className="py-4">
-                  <div className="p-3 bg-red-50 border border-red-200 rounded text-sm text-red-700">
-                    {errors.general}
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-            {!loading && (
-              <ProfileRelationshipMapper
-                config={formData}
-                onNext={handleMapNext}
-                onBack={() => setStep('configure')}
-                initialMapping={mapping}
-              />
-            )}
-          </>
+          <ProfileRelationshipMapper
+            config={formData}
+            onNext={handleMapNext}
+            onBack={() => setStep('configure')}
+            initialMapping={mapping}
+          />
         )}
 
         {/* Preview Step */}
