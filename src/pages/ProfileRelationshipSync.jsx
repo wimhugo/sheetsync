@@ -10,14 +10,15 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
   CheckCircle2, AlertCircle, Loader2, Upload, Sheet, 
-  ArrowRight, GitPullRequest, AlertTriangle, ArrowLeft 
+  ArrowRight, GitPullRequest, AlertTriangle, ArrowLeft, Map 
 } from 'lucide-react';
 import { ProfileRelationshipService } from '../components/services/profileRelationshipService';
 import { GitHubService } from '../components/services/githubService';
+import ProfileRelationshipMapper from '../components/sync/ProfileRelationshipMapper';
 
 export default function ProfileRelationshipSync() {
   const [user, setUser] = useState(null);
-  const [step, setStep] = useState('configure'); // configure, preview, success
+  const [step, setStep] = useState('configure'); // configure, map, preview, success
   
   const [formData, setFormData] = useState({
     sheetUrl: '',
@@ -29,6 +30,7 @@ export default function ProfileRelationshipSync() {
     indexFileName: 'index.json'
   });
 
+  const [mapping, setMapping] = useState({});
   const [uploading, setUploading] = useState(false);
   const [loading, setLoading] = useState(false);
   const [pushing, setPushing] = useState(false);
@@ -82,7 +84,7 @@ export default function ProfileRelationshipSync() {
     }
   };
 
-  const handlePreview = async (e) => {
+  const handleConfigureNext = (e) => {
     e.preventDefault();
 
     const newErrors = {};
@@ -113,11 +115,17 @@ export default function ProfileRelationshipSync() {
     }
 
     setErrors({});
+    setStep('map');
+  };
+
+  const handleMapNext = async (columnMapping) => {
+    setMapping(columnMapping);
     setLoading(true);
 
     try {
       const previewResult = await ProfileRelationshipService.previewChanges(
         formData,
+        columnMapping,
         formData.githubRepo,
         formData.githubToken
       );
@@ -174,6 +182,7 @@ export default function ProfileRelationshipSync() {
 
   const handleReset = () => {
     setStep('configure');
+    setMapping({});
     setPreview(null);
     setResult(null);
     setErrors({});
@@ -220,7 +229,7 @@ export default function ProfileRelationshipSync() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <form onSubmit={handlePreview} className="space-y-6">
+              <form onSubmit={handleConfigureNext} className="space-y-6">
                 <Tabs value={formData.dataSourceType} onValueChange={(value) => handleChange('dataSourceType', value)}>
                   <TabsList className="grid w-full grid-cols-2">
                     <TabsTrigger value="sheet">Google Sheet</TabsTrigger>
@@ -328,23 +337,24 @@ export default function ProfileRelationshipSync() {
                 )}
 
                 <div className="flex justify-end">
-                  <Button type="submit" size="lg" disabled={loading}>
-                    {loading ? (
-                      <>
-                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                        Loading...
-                      </>
-                    ) : (
-                      <>
-                        Preview Changes
-                        <ArrowRight className="w-4 h-4 ml-2" />
-                      </>
-                    )}
+                  <Button type="submit" size="lg">
+                    Next: Map Columns
+                    <ArrowRight className="w-4 h-4 ml-2" />
                   </Button>
                 </div>
               </form>
             </CardContent>
           </Card>
+        )}
+
+        {/* Map Step */}
+        {step === 'map' && (
+          <ProfileRelationshipMapper
+            config={formData}
+            onNext={handleMapNext}
+            onBack={() => setStep('configure')}
+            initialMapping={mapping}
+          />
         )}
 
         {/* Preview Step */}
@@ -424,7 +434,7 @@ export default function ProfileRelationshipSync() {
                 )}
 
                 <div className="flex justify-between">
-                  <Button variant="outline" onClick={() => setStep('configure')}>
+                  <Button variant="outline" onClick={() => setStep('map')}>
                     Back
                   </Button>
                   <Button 

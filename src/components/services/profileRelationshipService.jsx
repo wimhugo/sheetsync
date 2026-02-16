@@ -5,7 +5,7 @@ export class ProfileRelationshipService {
   /**
    * Process profile relationship data and augment existing attribute files
    */
-  static async processProfileRelationships(config, githubRepo, githubToken) {
+  static async processProfileRelationships(config, mapping, githubRepo, githubToken) {
     // Read profile relationship data from sheet or file
     const data = config.uploadedFileUrl 
       ? await SheetsService.readUploadedFile(config.uploadedFileUrl)
@@ -15,14 +15,9 @@ export class ProfileRelationshipService {
       throw new Error('No data found in the source');
     }
 
-    // Validate columns
-    const requiredColumns = ['AttributeIRI', 'ProfileIRI', 'ProfileClass', 'ProfileAttributeIRI', 
-                             'ProfileAttributeLabel', 'AggregationType', 'Benchmark', 'BenchmarkType'];
-    const columns = Object.keys(data[0]);
-    const missingColumns = requiredColumns.filter(col => !columns.includes(col));
-    
-    if (missingColumns.length > 0) {
-      throw new Error(`Missing required columns: ${missingColumns.join(', ')}`);
+    // Validate mapping has AttributeIRI
+    if (!mapping.AttributeIRI) {
+      throw new Error('AttributeIRI field must be mapped');
     }
 
     // Get all existing attribute files from GitHub
@@ -59,10 +54,10 @@ export class ProfileRelationshipService {
     const updates = new Map();
     
     for (const row of data) {
-      const attributeIRI = row.AttributeIRI?.trim();
+      const attributeIRI = row[mapping.AttributeIRI]?.trim();
       
       if (!attributeIRI) {
-        warnings.push(`Row skipped: Missing AttributeIRI`);
+        warnings.push(`Row skipped: Missing AttributeIRI value`);
         continue;
       }
 
@@ -73,19 +68,19 @@ export class ProfileRelationshipService {
         continue;
       }
 
-      // Create profile object
+      // Create profile object using mapped columns
       const profileObject = {
         '@type': 'Relationship',
         'relationType': 'includeInProfile',
         'object': {
-          '@id': row.ProfileIRI?.trim() || ''
+          '@id': mapping.ProfileIRI ? (row[mapping.ProfileIRI]?.trim() || '') : ''
         },
-        'profileClass': row.ProfileClass?.trim() || '',
-        'profileAttributeIRI': row.ProfileAttributeIRI?.trim() || '',
-        'profileAttributeLabel': row.ProfileAttributeLabel?.trim() || '',
-        'profileAttributeAggregationType': row.AggregationType?.trim() || '',
-        'profileBenchmark': row.Benchmark?.trim() || '',
-        'ex:profileBenchmarkType': row.BenchmarkType?.trim() || ''
+        'profileClass': mapping.ProfileClass ? (row[mapping.ProfileClass]?.trim() || '') : '',
+        'profileAttributeIRI': mapping.ProfileAttributeIRI ? (row[mapping.ProfileAttributeIRI]?.trim() || '') : '',
+        'profileAttributeLabel': mapping.ProfileAttributeLabel ? (row[mapping.ProfileAttributeLabel]?.trim() || '') : '',
+        'profileAttributeAggregationType': mapping.AggregationType ? (row[mapping.AggregationType]?.trim() || '') : '',
+        'profileBenchmark': mapping.Benchmark ? (row[mapping.Benchmark]?.trim() || '') : '',
+        'ex:profileBenchmarkType': mapping.BenchmarkType ? (row[mapping.BenchmarkType]?.trim() || '') : ''
       };
 
       // Get or create the update entry for this attribute
@@ -135,7 +130,7 @@ export class ProfileRelationshipService {
   /**
    * Preview changes that will be made
    */
-  static async previewChanges(config, githubRepo, githubToken) {
-    return await this.processProfileRelationships(config, githubRepo, githubToken);
+  static async previewChanges(config, mapping, githubRepo, githubToken) {
+    return await this.processProfileRelationships(config, mapping, githubRepo, githubToken);
   }
 }

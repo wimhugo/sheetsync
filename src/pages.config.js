@@ -47,13 +47,13 @@
  *
  * The mainPage value must match a key in the PAGES object exactly.
  */
-import Sync from './pages/Sync';
 import ProfileRelationshipSync from './pages/ProfileRelationshipSync';
+import Sync from './pages/Sync';
 
 
 export const PAGES = {
-    "Sync": Sync,
     "ProfileRelationshipSync": ProfileRelationshipSync,
+    "Sync": Sync,
 }
 
 export const pagesConfig = {
