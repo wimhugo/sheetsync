@@ -108,8 +108,25 @@ export class ProfileRelationshipService {
         update.data.profiles = [];
       }
 
-      // Append all profile objects
-      update.data.profiles.push(...update.profiles);
+      // Check if the first entry is an empty template (all fields empty strings)
+      const hasEmptyTemplate = update.data.profiles.length > 0 && 
+        update.data.profiles[0]['@type'] === 'Relationship' &&
+        update.data.profiles[0].relationType === 'includeInProfile' &&
+        (!update.data.profiles[0].object?.['@id'] || update.data.profiles[0].object['@id'] === '') &&
+        (!update.data.profiles[0].object?.name || update.data.profiles[0].object.name === '') &&
+        (!update.data.profiles[0].profileClass || update.data.profiles[0].profileClass === '') &&
+        (!update.data.profiles[0].profileAttributeIRI || update.data.profiles[0].profileAttributeIRI === '');
+
+      if (hasEmptyTemplate && update.profiles.length > 0) {
+        // Replace the empty template with the first profile, then append the rest
+        update.data.profiles[0] = update.profiles[0];
+        if (update.profiles.length > 1) {
+          update.data.profiles.push(...update.profiles.slice(1));
+        }
+      } else {
+        // No empty template, just append all profiles
+        update.data.profiles.push(...update.profiles);
+      }
 
       changes.push({
         path: update.path,
