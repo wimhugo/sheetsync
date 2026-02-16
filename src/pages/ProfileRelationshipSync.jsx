@@ -150,7 +150,6 @@ export default function ProfileRelationshipSync() {
     try {
       const prUrl = await GitHubService.createPullRequest(
         formData.githubRepo,
-        'profile-relationships-update',
         'Update attribute profiles',
         `Automated update of profile relationships\n\n- Files updated: ${preview.changes.length}\n- Rows processed: ${preview.summary.totalRows}\n- Rows skipped: ${preview.summary.rowsSkipped}`,
         preview.changes,
@@ -158,7 +157,7 @@ export default function ProfileRelationshipSync() {
       );
 
       setResult({
-        prUrl,
+        prUrl: prUrl.url,
         summary: preview.summary,
         warnings: preview.warnings
       });
