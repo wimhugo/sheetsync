@@ -119,10 +119,13 @@ export default function ProfileRelationshipSync() {
   };
 
   const handleMapNext = async (columnMapping) => {
+    console.log('handleMapNext called with:', columnMapping);
     setMapping(columnMapping);
+    setErrors({});
     setLoading(true);
 
     try {
+      console.log('Calling previewChanges...');
       const previewResult = await ProfileRelationshipService.previewChanges(
         formData,
         columnMapping,
@@ -130,9 +133,11 @@ export default function ProfileRelationshipSync() {
         formData.githubToken
       );
       
+      console.log('Preview result:', previewResult);
       setPreview(previewResult);
       setStep('preview');
     } catch (err) {
+      console.error('Preview error:', err);
       setErrors({ general: err.message || 'Failed to generate preview' });
     } finally {
       setLoading(false);
@@ -349,12 +354,35 @@ export default function ProfileRelationshipSync() {
 
         {/* Map Step */}
         {step === 'map' && (
-          <ProfileRelationshipMapper
-            config={formData}
-            onNext={handleMapNext}
-            onBack={() => setStep('configure')}
-            initialMapping={mapping}
-          />
+          <>
+            {loading && (
+              <Card className="mb-4">
+                <CardContent className="py-6">
+                  <div className="flex items-center justify-center gap-3 text-slate-600">
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                    <span>Generating preview...</span>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+            {errors.general && (
+              <Card className="mb-4">
+                <CardContent className="py-4">
+                  <div className="p-3 bg-red-50 border border-red-200 rounded text-sm text-red-700">
+                    {errors.general}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+            {!loading && (
+              <ProfileRelationshipMapper
+                config={formData}
+                onNext={handleMapNext}
+                onBack={() => setStep('configure')}
+                initialMapping={mapping}
+              />
+            )}
+          </>
         )}
 
         {/* Preview Step */}
