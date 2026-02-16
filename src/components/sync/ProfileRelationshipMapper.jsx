@@ -28,6 +28,7 @@ export default function ProfileRelationshipMapper({ config, onNext, onBack, init
   const [mapping, setMapping] = useState(initialMapping);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     loadData();
