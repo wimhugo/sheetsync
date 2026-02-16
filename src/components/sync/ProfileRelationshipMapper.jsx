@@ -16,8 +16,10 @@ const DEFAULT_PROFILE_FIELDS = [
   'ProfileClass',
   'ProfileAttributeIRI',
   'ProfileAttributeLabel',
+  'ProfileAttributeCategory',
   'AggregationType',
   'Benchmark',
+  'BenchmarkIRI',
   'BenchmarkType'
 ];
 

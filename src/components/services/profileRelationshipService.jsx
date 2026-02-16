@@ -79,8 +79,10 @@ export class ProfileRelationshipService {
         'profileClass': mapping.ProfileClass ? (row[mapping.ProfileClass]?.trim() || '') : '',
         'profileAttributeIRI': mapping.ProfileAttributeIRI ? (row[mapping.ProfileAttributeIRI]?.trim() || '') : '',
         'profileAttributeLabel': mapping.ProfileAttributeLabel ? (row[mapping.ProfileAttributeLabel]?.trim() || '') : '',
+        'profileAttributeCategory': mapping.ProfileAttributeCategory ? (row[mapping.ProfileAttributeCategory]?.trim() || '') : '',
         'profileAttributeAggregationType': mapping.AggregationType ? (row[mapping.AggregationType]?.trim() || '') : '',
         'profileBenchmark': mapping.Benchmark ? (row[mapping.Benchmark]?.trim() || '') : '',
+        'profileBenchmarkIRI': mapping.BenchmarkIRI ? (row[mapping.BenchmarkIRI]?.trim() || '') : '',
         'ex:profileBenchmarkType': mapping.BenchmarkType ? (row[mapping.BenchmarkType]?.trim() || '') : ''
       };
 
