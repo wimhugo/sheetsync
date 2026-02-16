@@ -21,7 +21,7 @@ export class ProfileRelationshipService {
     }
 
     // Get all existing attribute files from GitHub
-    const attributeFiles = await GitHubService.listFiles(
+    const attributeFiles = await GitHubService.getRepoFiles(
       githubRepo,
       config.outputDir || 'data',
       githubToken
@@ -34,7 +34,7 @@ export class ProfileRelationshipService {
     for (const file of attributeFiles) {
       if (file.name.endsWith('.json') && file.name !== (config.indexFileName || 'index.json')) {
         try {
-          const content = await GitHubService.getFile(githubRepo, file.path, githubToken);
+          const content = await GitHubService.getFileContent(githubRepo, file.path, githubToken);
           const attributeData = JSON.parse(content.content);
           
           if (attributeData['@id']) {
