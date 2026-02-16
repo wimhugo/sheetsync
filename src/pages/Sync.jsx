@@ -202,7 +202,7 @@ export default function SyncPage() {
                 const Icon = s.icon;
 
                 return (
-                  <React.Fragment key={s.id}>
+                  <div key={s.id} className="flex items-center">
                     <div className="flex flex-col items-center">
                       <div
                         className={`w-12 h-12 rounded-full flex items-center justify-center border-2 ${
@@ -231,7 +231,7 @@ export default function SyncPage() {
                         style={{ margin: '0 1rem', marginBottom: '2rem' }}
                       />
                     )}
-                  </React.Fragment>
+                  </div>
                 );
               })}
             </div>
