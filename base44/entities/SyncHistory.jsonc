@@ -1,0 +1,53 @@
+{
+  "name": "SyncHistory",
+  "type": "object",
+  "properties": {
+    "configuration_name": {
+      "type": "string",
+      "description": "Name of the configuration used"
+    },
+    "sheet_url": {
+      "type": "string",
+      "description": "Google Sheet URL"
+    },
+    "github_repo": {
+      "type": "string",
+      "description": "GitHub repository (owner/repo)"
+    },
+    "pr_url": {
+      "type": "string",
+      "description": "URL of the created pull request"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "success",
+        "failed",
+        "in_progress"
+      ],
+      "description": "Status of the sync operation"
+    },
+    "files_created": {
+      "type": "number",
+      "description": "Number of files created"
+    },
+    "files_updated": {
+      "type": "number",
+      "description": "Number of files updated"
+    },
+    "files_deleted": {
+      "type": "number",
+      "description": "Number of files deleted"
+    },
+    "error_message": {
+      "type": "string",
+      "description": "Error message if sync failed"
+    }
+  },
+  "required": [
+    "configuration_name",
+    "sheet_url",
+    "github_repo",
+    "status"
+  ]
+}
